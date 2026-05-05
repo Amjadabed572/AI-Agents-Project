@@ -192,7 +192,7 @@ window. The signal looks almost flat, making frequency extraction very hard.
 
 ## 10. GitHub Repository
 
-> **[https://github.com/YOUR_USERNAME/hw1-sine-rnn](https://github.com/YOUR_USERNAME/hw1-sine-rnn)**
+> **https://github.com/Amjadabed572/hw1-sine-rnn.git**
 
 ---
 

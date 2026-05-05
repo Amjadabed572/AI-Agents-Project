@@ -1,6 +1,6 @@
 """
-dataset.py - SineDataset and DataLoader factory for HW1.
-Task: given a combined noisy signal window + 1-hot label, extract target frequency.
+dataset.py - SineDataset and DataLoader factory for hw1.
+Task: combined noisy signal window + 1-hot label -> clean target frequency window.
 """
 
 import numpy as np
@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from typing import List, Tuple
 
-from constants import (
+from hw1.constants import (
     FREQUENCIES,
     SAMPLE_RATE,
     WINDOW_LEN,
@@ -17,20 +17,18 @@ from constants import (
     NOISE_SIGMA,
     NUM_CLASSES,
 )
-from signals import generate_combined, one_hot, extract_windows
+from hw1.signals import generate_combined, one_hot, extract_windows
 
 
 class SineDataset(Dataset):
     """
     Dataset for frequency extraction from combined signals.
 
-    Each item contains:
-        'mixed_window'  : Tensor [WINDOW_LEN]  - combined noisy signal window
-        'clean_window'  : Tensor [WINDOW_LEN]  - target frequency only (no noise)
-        'label'         : Tensor [NUM_CLASSES] - 1-hot frequency label
-        'freq_idx'      : int                  - class index (0-3)
-
-    Task: mixed_window + label -> predict clean_window of target frequency.
+    Each item:
+        mixed_window  : Tensor [WINDOW_LEN]  - combined noisy signal window
+        clean_window  : Tensor [WINDOW_LEN]  - target frequency only (no noise)
+        label         : Tensor [NUM_CLASSES] - 1-hot frequency label
+        freq_idx      : int                  - class index (0-3)
     """
 
     def __init__(
@@ -43,7 +41,7 @@ class SineDataset(Dataset):
         samples_per_freq: int = 500,
         seed: int = 42,
     ):
-        """Initialize dataset and generate all windows."""
+        """Initialise dataset and generate all windows."""
         super().__init__()
         np.random.seed(seed)
         self.window_len = window_len
@@ -62,7 +60,7 @@ class SineDataset(Dataset):
         noise_std: float,
         samples_per_freq: int,
     ) -> None:
-        """Generate all windows for all frequency classes."""
+        """Generate windows for all frequency classes."""
         for freq_idx in range(len(frequencies)):
             label = one_hot(freq_idx)
             collected = 0
@@ -74,10 +72,9 @@ class SineDataset(Dataset):
                     amplitude=AMPLITUDE,
                     noise_std=noise_std,
                 )
-                clean = components[freq_idx]
                 for mw, cw in zip(
                     extract_windows(mixed, self.window_len),
-                    extract_windows(clean, self.window_len),
+                    extract_windows(components[freq_idx], self.window_len),
                 ):
                     if collected >= samples_per_freq:
                         break
@@ -88,7 +85,7 @@ class SineDataset(Dataset):
                     collected += 1
 
     def __len__(self) -> int:
-        """Return total number of windows in dataset."""
+        """Return total number of windows."""
         return len(self.labels)
 
     def __getitem__(self, idx: int) -> dict:

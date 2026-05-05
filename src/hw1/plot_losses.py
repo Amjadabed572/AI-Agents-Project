@@ -1,5 +1,5 @@
 """
-plot_losses.py - Loss curve and model comparison visualizations for HW1.
+plot_losses.py - Loss curve and model comparison visualizations for hw1.
 """
 
 import matplotlib.pyplot as plt
@@ -15,10 +15,9 @@ def plot_loss_curves(histories: Dict[str, Dict[str, List[float]]]) -> None:
 
     Parameters
     ----------
-    histories : dict mapping model name to {'train_loss': [...], 'val_loss': [...]}
+    histories : dict mapping model name to loss history dict
     """
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-
     for ax, (name, hist) in zip(axes, histories.items()):
         epochs = range(1, len(hist["train_loss"]) + 1)
         ax.plot(
@@ -49,7 +48,6 @@ def plot_loss_curves(histories: Dict[str, Dict[str, List[float]]]) -> None:
             fontsize=9,
             color=COLORS[name],
         )
-
     fig.suptitle(
         "Training vs Validation Loss — Frequency Extraction Task",
         fontsize=14,
@@ -57,8 +55,8 @@ def plot_loss_curves(histories: Dict[str, Dict[str, List[float]]]) -> None:
         y=1.02,
     )
     plt.tight_layout()
-    plt.savefig("loss_curves.png", dpi=150, bbox_inches="tight")
-    print("Saved: loss_curves.png", flush=True)
+    plt.savefig("assets/loss_curves.png", dpi=150, bbox_inches="tight")
+    print("Saved: assets/loss_curves.png", flush=True)
     plt.show()
 
 
@@ -68,12 +66,11 @@ def plot_final_comparison(histories: Dict[str, Dict[str, List[float]]]) -> None:
 
     Parameters
     ----------
-    histories : dict mapping model name to loss history
+    histories : dict mapping model name to loss history dict
     """
     names = list(histories.keys())
     values = [h["val_loss"][-1] for h in histories.values()]
     colors = [COLORS[n] for n in names]
-
     fig, ax = plt.subplots(figsize=(7, 5))
     bars = ax.bar(names, values, color=colors, width=0.5, edgecolor="black")
     for bar, val in zip(bars, values):
@@ -90,6 +87,6 @@ def plot_final_comparison(histories: Dict[str, Dict[str, List[float]]]) -> None:
     ax.set_ylim(0, max(values) * 1.2)
     ax.grid(True, axis="y", alpha=0.3)
     plt.tight_layout()
-    plt.savefig("model_comparison.png", dpi=150, bbox_inches="tight")
-    print("Saved: model_comparison.png", flush=True)
+    plt.savefig("assets/model_comparison.png", dpi=150, bbox_inches="tight")
+    print("Saved: assets/model_comparison.png", flush=True)
     plt.show()

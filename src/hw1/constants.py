@@ -1,14 +1,16 @@
 """
-constants.py - Shared constants for HW1.
+constants.py - Shared constants for hw1.
 All project-wide constants are defined here and imported by other modules.
+Single source of truth — never hardcode these values elsewhere.
 """
 
 from typing import List
 
-# Frequencies chosen: well-separated on log scale, covers low/mid/high range
+# Frequencies: logarithmically spaced, covers low/mid/high range
+# Max 20 Hz is well below Nyquist limit of 100 Hz (sample rate 200 Hz)
 FREQUENCIES: List[float] = [1.0, 5.0, 10.0, 20.0]  # Hz
 
-# Sampling rate: 200 Hz satisfies Nyquist for max freq 20 Hz (min 40 Hz needed)
+# 200 Hz satisfies Nyquist for max frequency 20 Hz (min needed: 40 Hz)
 SAMPLE_RATE: int = 200  # samples per second
 
 WINDOW_LEN: int = 10  # context window size in samples

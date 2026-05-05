@@ -1,6 +1,6 @@
 """
 test_signals.py - Unit tests for signal generation, helpers, and dataset.
-Run with: pytest test_signals.py -v
+Run with: pytest tests/ -v
 """
 
 import pytest
@@ -8,17 +8,16 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from constants import (
+from hw1.constants import (
     FREQUENCIES,
     SAMPLE_RATE,
     WINDOW_LEN,
     NUM_CLASSES,
     SIGNAL_DURATION,
     AMPLITUDE,
-    NOISE_SIGMA,
 )
-from signals import generate_sine, generate_combined, one_hot, extract_windows
-from dataset import SineDataset, get_dataloaders
+from hw1.signals import generate_sine, generate_combined, one_hot, extract_windows
+from hw1.dataset import SineDataset, get_dataloaders
 
 
 class TestGenerateSine:
@@ -34,8 +33,7 @@ class TestGenerateSine:
 
     def test_pure_signal_amplitude(self):
         """Pure sine (no noise) stays within [-A, A]."""
-        sig = generate_sine(freq=5, noise_std=0.0)
-        assert np.max(np.abs(sig)) <= AMPLITUDE + 1e-6
+        assert np.max(np.abs(generate_sine(freq=5, noise_std=0.0))) <= AMPLITUDE + 1e-6
 
     def test_noise_increases_variance(self):
         """Noisy signal has higher variance than pure signal."""
@@ -47,9 +45,9 @@ class TestGenerateSine:
     def test_frequency_content(self):
         """Dominant FFT frequency matches requested frequency."""
         sig = generate_sine(freq=5, duration=10, sample_rate=200, noise_std=0.0)
-        fft_mag = np.abs(np.fft.rfft(sig))
         fft_freq = np.fft.rfftfreq(len(sig), d=1.0 / 200)
-        assert abs(fft_freq[np.argmax(fft_mag)] - 5) < 1.0
+        dominant = fft_freq[np.argmax(np.abs(np.fft.rfft(sig)))]
+        assert abs(dominant - 5) < 1.0
 
     def test_different_frequencies_differ(self):
         """Signals at different frequencies are not identical."""
@@ -121,12 +119,11 @@ class TestExtractWindows:
     """Tests for extract_windows() helper."""
 
     def test_window_shape(self):
-        wins = extract_windows(np.ones(100, dtype=np.float32), window_len=10)
-        assert wins.shape == (10, 10)
+        assert extract_windows(np.ones(100, dtype=np.float32), 10).shape == (10, 10)
 
     def test_no_overlap(self):
         sig = np.arange(100, dtype=np.float32)
-        wins = extract_windows(sig, window_len=10)
+        wins = extract_windows(sig, 10)
         assert wins[0, -1] != wins[1, 0]
 
     def test_partial_window_dropped(self):
@@ -186,4 +183,5 @@ class TestGetDataloaders:
 
     def test_sizes_sum_to_total(self):
         tr, va = get_dataloaders(batch_size=32, samples_per_freq=50)
-        assert len(tr.dataset) + len(va.dataset) == NUM_CLASSES * 50  # type: ignore[arg-type]
+        total = len(tr.dataset) + len(va.dataset)  # type: ignore[arg-type]
+        assert total == NUM_CLASSES * 50

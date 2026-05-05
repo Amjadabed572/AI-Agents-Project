@@ -1,16 +1,15 @@
 """
 test_models.py - Unit tests for model architectures and training loop.
-Run with: pytest test_models.py -v
+Run with: pytest tests/ -v
 """
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
 
-from constants import WINDOW_LEN, NUM_CLASSES
-from models import MLP, RNNModel, LSTMModel, OUTPUT_SIZE
-from train import train_epoch, evaluate, count_parameters
-from dataset import get_dataloaders
+from hw1.constants import WINDOW_LEN, NUM_CLASSES
+from hw1.models import MLP, RNNModel, LSTMModel, OUTPUT_SIZE
+from hw1.train import train_epoch, evaluate, count_parameters
+from hw1.dataset import get_dataloaders
 
 
 def _batch(B: int = 4) -> tuple:  # type: ignore[type-arg]
@@ -84,12 +83,12 @@ class TestTraining:
     """Tests for training loop and evaluation."""
 
     @pytest.fixture(scope="class")
-    def loaders(self) -> tuple:  # type: ignore[type-arg]
+    def loaders(self):  # type: ignore[override]
         """Shared small DataLoaders fixture."""
         return get_dataloaders(batch_size=32, samples_per_freq=50, seed=7)
 
     @pytest.mark.parametrize("ModelClass", [MLP, RNNModel, LSTMModel])
-    def test_loss_decreases(self, loaders: tuple, ModelClass) -> None:  # type: ignore[type-arg]
+    def test_loss_decreases(self, loaders, ModelClass) -> None:
         """Training loss must decrease over 5 epochs for all models."""
         tr, _ = loaders
         model = ModelClass().to("cpu")
@@ -105,7 +104,7 @@ class TestTraining:
         )
 
     @pytest.mark.parametrize("ModelClass", [MLP, RNNModel, LSTMModel])
-    def test_evaluate_returns_float(self, loaders: tuple, ModelClass) -> None:  # type: ignore[type-arg]
+    def test_evaluate_returns_float(self, loaders, ModelClass) -> None:
         """Evaluate must return a non-negative float."""
         _, va = loaders
         val_loss = evaluate(ModelClass(), va, torch.nn.MSELoss(), torch.device("cpu"))
