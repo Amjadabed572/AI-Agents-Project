@@ -1,0 +1,42 @@
+{
+    "version": "1.00",
+    "model_results": {
+        "MLP": {
+            "final_val_mse": 0.009081,
+            "parameters": 18186,
+            "rank": 1
+        },
+        "RNN": {
+            "final_val_mse": 0.070803,
+            "parameters": 5194,
+            "rank": 3
+        },
+        "LSTM": {
+            "final_val_mse": 0.036985,
+            "parameters": 52106,
+            "rank": 2
+        }
+    },
+    "per_frequency_mse": {
+        "1hz": {
+            "MLP": 1.3532,
+            "RNN": 0.0315,
+            "LSTM": 1.2451
+        },
+        "5hz": {
+            "MLP": 0.2125,
+            "RNN": 0.1296,
+            "LSTM": 0.0636
+        },
+        "10hz": {
+            "MLP": 0.8718,
+            "RNN": 0.5940,
+            "LSTM": 0.2679
+        },
+        "20hz": {
+            "MLP": 0.1623,
+            "RNN": 0.0140,
+            "LSTM": 0.1703
+        }
+    }
+}

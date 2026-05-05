@@ -109,3 +109,10 @@ class TestTraining:
         _, va = loaders
         val_loss = evaluate(ModelClass(), va, torch.nn.MSELoss(), torch.device("cpu"))
         assert isinstance(val_loss, float) and val_loss >= 0.0
+
+
+def test_version():
+    """Version string must be non-empty."""
+    from hw1.shared.version import get_version
+
+    assert get_version() == "1.00"
