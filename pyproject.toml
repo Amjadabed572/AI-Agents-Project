@@ -21,3 +21,8 @@ ignore = ["E501"]
 
 [tool.coverage.report]
 fail_under = 85
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+]

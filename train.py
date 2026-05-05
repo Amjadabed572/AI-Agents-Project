@@ -5,7 +5,7 @@ train.py - Training loop and evaluation utilities for HW1
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import time
 
 
@@ -20,16 +20,16 @@ def train_epoch(
     model.train()
     total_loss = 0.0
     for batch in loader:
-        noisy  = batch["noisy_window"].to(device)
-        clean  = batch["clean_window"].to(device)
-        label  = batch["label"].to(device)
+        mixed = batch["mixed_window"].to(device)
+        clean = batch["clean_window"].to(device)
+        label = batch["label"].to(device)
 
         optimizer.zero_grad()
-        pred = model(noisy, label)
+        pred = model(mixed, label)
         loss = criterion(pred, clean)
         loss.backward()
         optimizer.step()
-        total_loss += loss.item() * noisy.size(0)
+        total_loss += loss.item() * mixed.size(0)
 
     return total_loss / len(loader.dataset)
 
@@ -45,12 +45,12 @@ def evaluate(
     total_loss = 0.0
     with torch.no_grad():
         for batch in loader:
-            noisy  = batch["noisy_window"].to(device)
-            clean  = batch["clean_window"].to(device)
-            label  = batch["label"].to(device)
-            pred   = model(noisy, label)
-            loss   = criterion(pred, clean)
-            total_loss += loss.item() * noisy.size(0)
+            mixed = batch["mixed_window"].to(device)
+            clean = batch["clean_window"].to(device)
+            label = batch["label"].to(device)
+            pred = model(mixed, label)
+            loss = criterion(pred, clean)
+            total_loss += loss.item() * mixed.size(0)
     return total_loss / len(loader.dataset)
 
 
@@ -66,9 +66,7 @@ def train_model(
     """
     Full training run.
 
-    Returns
-    -------
-    dict with keys 'train_loss' and 'val_loss' (lists, one value per epoch)
+    Returns dict with 'train_loss' and 'val_loss' lists (one value per epoch).
     """
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -78,7 +76,7 @@ def train_model(
     for epoch in range(1, epochs + 1):
         t0 = time.time()
         tr_loss = train_epoch(model, train_loader, optimizer, criterion, device)
-        va_loss  = evaluate(model, val_loader, criterion, device)
+        va_loss = evaluate(model, val_loader, criterion, device)
         history["train_loss"].append(tr_loss)
         history["val_loss"].append(va_loss)
         if verbose and (epoch % 10 == 0 or epoch == 1):
@@ -87,9 +85,9 @@ def train_model(
                 f"Epoch {epoch:3d}/{epochs} | "
                 f"Train MSE: {tr_loss:.6f} | "
                 f"Val MSE: {va_loss:.6f} | "
-                f"{time.time()-t0:.1f}s"
+                f"{time.time()-t0:.1f}s",
+                flush=True,
             )
-
     return history
 
 
@@ -101,27 +99,17 @@ def compare_models(
     lr: float = 1e-3,
     device: torch.device = torch.device("cpu"),
 ) -> Dict[str, Dict[str, List[float]]]:
-    """
-    Train all models and return their histories.
-
-    Parameters
-    ----------
-    models : dict  name → model instance
-
-    Returns
-    -------
-    dict  name → {'train_loss': [...], 'val_loss': [...]}
-    """
+    """Train all models and return their loss histories."""
     results = {}
     for name, model in models.items():
-        print(f"\n{'='*50}")
-        print(f"  Training {name}")
-        print(f"{'='*50}")
-        history = train_model(model, train_loader, val_loader,
-                               epochs=epochs, lr=lr, device=device)
+        print(f"\n{'='*50}", flush=True)
+        print(f"  Training {name}", flush=True)
+        print(f"{'='*50}", flush=True)
+        history = train_model(
+            model, train_loader, val_loader, epochs=epochs, lr=lr, device=device
+        )
         results[name] = history
-        final_val = history["val_loss"][-1]
-        print(f"  -> Final Val MSE: {final_val:.6f}")
+        print(f"  -> Final Val MSE: {history['val_loss'][-1]:.6f}", flush=True)
     return results
 
 

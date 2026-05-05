@@ -1,5 +1,6 @@
 import traceback
+
 try:
-    import main
-except Exception as e:
+    pass
+except Exception:
     traceback.print_exc()

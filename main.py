@@ -1,9 +1,14 @@
+"""
+main.py - Entry point for HW1
+Trains MLP, RNN, and LSTM on the frequency extraction task and prints results.
+Task: given a combined noisy signal window + 1-hot label, extract target frequency.
+"""
+
 import sys
+import torch
 
 print("Starting...", flush=True)
-sys.stdout.flush()
 
-import torch
 from dataset import get_dataloaders, FREQUENCIES
 from models import MLP, RNNModel, LSTMModel
 from train import compare_models, count_parameters

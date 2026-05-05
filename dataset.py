@@ -1,6 +1,7 @@
 """
 dataset.py - Signal Dataset Generator for HW1
-Generates sine wave signals at 4 known frequencies with/without noise.
+Generates COMBINED sine wave signals (all 4 frequencies mixed together).
+The network must extract one target frequency from the combined noisy signal.
 Frequencies chosen: 1 Hz, 5 Hz, 10 Hz, 20 Hz
 """
 
@@ -10,13 +11,13 @@ from torch.utils.data import Dataset, DataLoader
 from typing import Tuple, List
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-FREQUENCIES = [1, 5, 10, 20]          # Hz  (chosen to be well-separated)
-SAMPLE_RATE  = 200                      # samples/sec  (≥ 2 × max_freq = 40)
-WINDOW_LEN   = 10                       # context window in samples
-SIGNAL_DURATION = 10.0                  # seconds
-AMPLITUDE    = 1.0                      # base amplitude A
-NOISE_SIGMA  = 0.10                     # noise as fraction of A  (10 %)
-NUM_CLASSES  = len(FREQUENCIES)         # 4
+FREQUENCIES = [1, 5, 10, 20]  # Hz (chosen: well-separated, log-scale spread)
+SAMPLE_RATE = 200  # samples/sec (≥ 2 × 20 Hz = 40 Hz, Nyquist)
+WINDOW_LEN = 10  # context window in samples
+SIGNAL_DURATION = 10.0  # seconds
+AMPLITUDE = 1.0  # base amplitude A per frequency component
+NOISE_SIGMA = 0.10  # noise as fraction of A (10%)
+NUM_CLASSES = len(FREQUENCIES)  # 4
 
 
 def generate_sine(
@@ -28,31 +29,54 @@ def generate_sine(
     noise_std: float = 0.0,
 ) -> np.ndarray:
     """
-    Generate a (possibly noisy) sine wave.
-
-    Signal model:  y(t) = (A ± σ_A) · sin(2π f t + φ) + σ_noise
-    where σ_A  = amplitude * noise_std  (amplitude jitter)
-          σ_noise is additive Gaussian noise with the same std.
+    Generate one sine wave component: y(t) = (A +- sigma_A) * sin(2pi*f*t + phi + sigma_2)
 
     Parameters
     ----------
-    freq        : frequency in Hz
-    duration    : total length in seconds
-    sample_rate : samples per second
-    amplitude   : base amplitude A
-    phase       : initial phase φ  (radians)
-    noise_std   : noise level as a fraction of A  (0 = pure signal)
+    freq      : frequency in Hz
+    noise_std : noise level as fraction of A (0 = pure)
+
+    Returns np.ndarray of shape (num_samples,)
+    """
+    t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
+    A_actual = amplitude * (1.0 + np.random.randn() * noise_std)
+    phase_noise = np.random.randn() * noise_std if noise_std > 0 else 0.0
+    signal = A_actual * np.sin(2 * np.pi * freq * t + phase + phase_noise)
+    if noise_std > 0:
+        signal += np.random.randn(len(t)) * amplitude * noise_std
+    return signal.astype(np.float32)
+
+
+def generate_combined(
+    frequencies: List[float] = FREQUENCIES,
+    duration: float = SIGNAL_DURATION,
+    sample_rate: int = SAMPLE_RATE,
+    amplitude: float = AMPLITUDE,
+    noise_std: float = 0.0,
+) -> Tuple[np.ndarray, List[np.ndarray]]:
+    """
+    Generate a combined signal = sum of all frequency components.
 
     Returns
     -------
-    np.ndarray of shape (num_samples,)
+    combined   : np.ndarray (num_samples,) - mixed signal (model input)
+    components : list of np.ndarray        - each individual clean sine wave
     """
-    t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
-    A_actual = amplitude * (1.0 + np.random.randn() * noise_std)   # amplitude jitter
-    signal = A_actual * np.sin(2 * np.pi * freq * t + phase)
+    components = []
+    for freq in frequencies:
+        phase = np.random.uniform(0, 2 * np.pi)
+        component = generate_sine(
+            freq, duration, sample_rate, amplitude, phase, noise_std=0.0
+        )
+        components.append(component)
+
+    combined = np.sum(components, axis=0).astype(np.float32)
     if noise_std > 0:
-        signal += np.random.randn(len(t)) * amplitude * noise_std  # additive noise
-    return signal.astype(np.float32)
+        n_samples = int(duration * sample_rate)
+        combined += (np.random.randn(n_samples) * amplitude * noise_std).astype(
+            np.float32
+        )
+    return combined, components
 
 
 def one_hot(class_idx: int, num_classes: int = NUM_CLASSES) -> np.ndarray:
@@ -63,24 +87,22 @@ def one_hot(class_idx: int, num_classes: int = NUM_CLASSES) -> np.ndarray:
 
 
 def extract_windows(signal: np.ndarray, window_len: int = WINDOW_LEN) -> np.ndarray:
-    """
-    Slice a 1-D signal into consecutive non-overlapping windows.
-
-    Returns array of shape  (num_windows, window_len).
-    """
+    """Slice a 1-D signal into non-overlapping windows -> (n_windows, window_len)."""
     n_windows = len(signal) // window_len
     return signal[: n_windows * window_len].reshape(n_windows, window_len)
 
 
 class SineDataset(Dataset):
     """
-    PyTorch Dataset of sliding-window sine-wave samples.
+    Dataset for frequency extraction from combined signals.
 
-    Each item is a dict:
-        'noisy_window'  : Tensor [WINDOW_LEN]  – samples with noise
-        'clean_window'  : Tensor [WINDOW_LEN]  – samples without noise
-        'label'         : Tensor [NUM_CLASSES] – 1-hot frequency label
-        'freq_idx'      : int                  – class index (0–3)
+    Each item:
+        'mixed_window'  : Tensor [WINDOW_LEN]  - window of combined noisy signal
+        'clean_window'  : Tensor [WINDOW_LEN]  - window of target frequency only
+        'label'         : Tensor [NUM_CLASSES] - 1-hot of target frequency
+        'freq_idx'      : int                  - class index (0-3)
+
+    Task: given mixed_window + label -> predict clean_window of target frequency.
     """
 
     def __init__(
@@ -95,49 +117,49 @@ class SineDataset(Dataset):
     ):
         super().__init__()
         np.random.seed(seed)
-
         self.window_len = window_len
         self.frequencies = frequencies
 
-        self.noisy_windows: List[np.ndarray] = []
+        self.mixed_windows: List[np.ndarray] = []
         self.clean_windows: List[np.ndarray] = []
-        self.labels:        List[np.ndarray] = []
-        self.freq_indices:  List[int]        = []
+        self.labels: List[np.ndarray] = []
+        self.freq_indices: List[int] = []
 
-        for freq_idx, freq in enumerate(frequencies):
+        for freq_idx in range(len(frequencies)):
             label = one_hot(freq_idx)
-            windows_collected = 0
+            collected = 0
 
-            while windows_collected < samples_per_freq:
-                # random phase each signal to increase variety
-                phase = np.random.uniform(0, 2 * np.pi)
+            while collected < samples_per_freq:
+                mixed, components = generate_combined(
+                    frequencies,
+                    duration,
+                    sample_rate,
+                    amplitude=AMPLITUDE,
+                    noise_std=noise_std,
+                )
+                clean = components[freq_idx]
 
-                clean  = generate_sine(freq, duration, sample_rate,
-                                        noise_std=0.0, phase=phase)
-                noisy  = generate_sine(freq, duration, sample_rate,
-                                        noise_std=noise_std, phase=phase)
-
+                mixed_wins = extract_windows(mixed, window_len)
                 clean_wins = extract_windows(clean, window_len)
-                noisy_wins = extract_windows(noisy, window_len)
 
-                for cw, nw in zip(clean_wins, noisy_wins):
-                    if windows_collected >= samples_per_freq:
+                for mw, cw in zip(mixed_wins, clean_wins):
+                    if collected >= samples_per_freq:
                         break
+                    self.mixed_windows.append(mw)
                     self.clean_windows.append(cw)
-                    self.noisy_windows.append(nw)
                     self.labels.append(label)
                     self.freq_indices.append(freq_idx)
-                    windows_collected += 1
+                    collected += 1
 
     def __len__(self) -> int:
         return len(self.labels)
 
     def __getitem__(self, idx: int) -> dict:
         return {
-            "noisy_window": torch.tensor(self.noisy_windows[idx]),
+            "mixed_window": torch.tensor(self.mixed_windows[idx]),
             "clean_window": torch.tensor(self.clean_windows[idx]),
-            "label":        torch.tensor(self.labels[idx]),
-            "freq_idx":     self.freq_indices[idx],
+            "label": torch.tensor(self.labels[idx]),
+            "freq_idx": self.freq_indices[idx],
         }
 
 
@@ -147,18 +169,15 @@ def get_dataloaders(
     samples_per_freq: int = 500,
     seed: int = 42,
 ) -> Tuple[DataLoader, DataLoader]:
-    """
-    Build train / validation DataLoaders.
-
-    Returns (train_loader, val_loader).
-    """
+    """Build train / validation DataLoaders. Returns (train_loader, val_loader)."""
     dataset = SineDataset(samples_per_freq=samples_per_freq, seed=seed)
     n_train = int(len(dataset) * train_split)
-    n_val   = len(dataset) - n_train
+    n_val = len(dataset) - n_train
     train_ds, val_ds = torch.utils.data.random_split(
-        dataset, [n_train, n_val],
+        dataset,
+        [n_train, n_val],
         generator=torch.Generator().manual_seed(seed),
     )
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-    val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False)
+    val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
     return train_loader, val_loader
