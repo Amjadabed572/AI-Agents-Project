@@ -7,7 +7,7 @@ Output: clean window of the target frequency only (10 samples).
 
 import torch
 import torch.nn as nn
-from dataset import WINDOW_LEN, NUM_CLASSES
+from constants import WINDOW_LEN, NUM_CLASSES
 
 INPUT_SIZE = WINDOW_LEN + NUM_CLASSES  # 10 + 4 = 14
 OUTPUT_SIZE = WINDOW_LEN  # 10

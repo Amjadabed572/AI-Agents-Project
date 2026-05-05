@@ -1,0 +1,88 @@
+"""
+signals.py - Signal generation utilities for HW1.
+Provides functions to generate individual sine waves and combined signals.
+"""
+
+import numpy as np
+from typing import List, Tuple
+from constants import (
+    FREQUENCIES,
+    SAMPLE_RATE,
+    SIGNAL_DURATION,
+    AMPLITUDE,
+    NOISE_SIGMA,
+    NUM_CLASSES,
+    WINDOW_LEN,
+)
+
+
+def generate_sine(
+    freq: float,
+    duration: float = SIGNAL_DURATION,
+    sample_rate: int = SAMPLE_RATE,
+    amplitude: float = AMPLITUDE,
+    phase: float = 0.0,
+    noise_std: float = 0.0,
+) -> np.ndarray:
+    """
+    Generate one sine wave: y(t) = (A +- sigma_A) * sin(2pi*f*t + phi + sigma_2).
+
+    Parameters
+    ----------
+    freq      : frequency in Hz
+    noise_std : noise level as fraction of A (0 = pure signal)
+
+    Returns np.ndarray of shape (num_samples,) dtype float32.
+    """
+    t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
+    A_actual = amplitude * (1.0 + np.random.randn() * noise_std)
+    phase_noise = np.random.randn() * noise_std if noise_std > 0 else 0.0
+    signal = A_actual * np.sin(2 * np.pi * freq * t + phase + phase_noise)
+    if noise_std > 0:
+        signal += np.random.randn(len(t)) * amplitude * noise_std
+    return signal.astype(np.float32)
+
+
+def generate_combined(
+    frequencies: List[float] = FREQUENCIES,
+    duration: float = SIGNAL_DURATION,
+    sample_rate: int = SAMPLE_RATE,
+    amplitude: float = AMPLITUDE,
+    noise_std: float = 0.0,
+) -> Tuple[np.ndarray, List[np.ndarray]]:
+    """
+    Generate a combined signal = sum of all frequency components with noise.
+
+    Returns
+    -------
+    combined   : np.ndarray (num_samples,) - mixed signal (model input)
+    components : List[np.ndarray]          - each individual clean sine wave
+    """
+    components = []
+    for freq in frequencies:
+        phase = np.random.uniform(0, 2 * np.pi)
+        component = generate_sine(
+            freq, duration, sample_rate, amplitude, phase, noise_std=0.0
+        )
+        components.append(component)
+
+    combined = np.sum(components, axis=0).astype(np.float32)
+    if noise_std > 0:
+        n_samples = int(duration * sample_rate)
+        combined += (np.random.randn(n_samples) * amplitude * noise_std).astype(
+            np.float32
+        )
+    return combined, components
+
+
+def one_hot(class_idx: int, num_classes: int = NUM_CLASSES) -> np.ndarray:
+    """Return a 1-hot encoded vector for class_idx."""
+    vec = np.zeros(num_classes, dtype=np.float32)
+    vec[class_idx] = 1.0
+    return vec
+
+
+def extract_windows(signal: np.ndarray, window_len: int = WINDOW_LEN) -> np.ndarray:
+    """Slice a 1-D signal into non-overlapping windows -> (n_windows, window_len)."""
+    n_windows = len(signal) // window_len
+    return signal[: n_windows * window_len].reshape(n_windows, window_len)
