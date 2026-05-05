@@ -1,92 +1,47 @@
 """
-plot_signals.py - Signal extraction visualization for hw1.
-Shows mixed input vs predicted output vs ground truth per model and frequency.
+main.py - Entry point for HW1.
+Trains MLP, RNN, and LSTM on frequency extraction and prints results.
 """
 
-import numpy as np
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(__file__))
+
 import torch
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-from typing import Dict, List
-from hw1.constants import FREQUENCIES, SAMPLE_RATE, WINDOW_LEN, NUM_CLASSES, NOISE_SIGMA
-from hw1.signals import generate_combined, extract_windows
 
-FREQ_NAMES: List[str] = [f"{int(f)} Hz" for f in FREQUENCIES]
+print("Starting...", flush=True)
 
+from hw1.dataset import get_dataloaders
+from hw1.constants import FREQUENCIES
+from hw1.models import MLP, RNNModel, LSTMModel
+from hw1.train import compare_models, count_parameters
+from hw1.shared.version import get_version
 
-def _predict_window(
-    model: torch.nn.Module,
-    mixed: np.ndarray,
-    freq_idx: int,
-    device: torch.device,
-) -> tuple:  # type: ignore[type-arg]
-    """Run one window through model, return (mixed_win_array, pred_array)."""
-    mixed_win = (
-        torch.tensor(extract_windows(mixed, WINDOW_LEN)[0]).unsqueeze(0).to(device)
-    )
-    label = torch.zeros(1, NUM_CLASSES, device=device)
-    label[0, freq_idx] = 1.0
-    with torch.no_grad():
-        pred = model(mixed_win, label).squeeze().cpu().numpy()
-    return mixed_win.squeeze().cpu().numpy(), pred
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+EPOCHS = 50
+BATCH = 64
+LR = 1e-3
 
+print(f"Version : {get_version()}", flush=True)
+print(f"Device  : {DEVICE}", flush=True)
+print(f"Frequencies (Hz): {FREQUENCIES}", flush=True)
 
-def plot_signal_extraction(
-    models: Dict[str, torch.nn.Module],
-    device: torch.device,
-) -> None:
-    """
-    3x4 grid showing frequency extraction quality per model and frequency.
+train_loader, val_loader = get_dataloaders(batch_size=BATCH, samples_per_freq=500)
+print(
+    f"Train batches: {len(train_loader)} | Val batches: {len(val_loader)}", flush=True
+)
 
-    Parameters
-    ----------
-    models : dict mapping model name to trained model instance
-    device : torch device to run inference on
-    """
-    np.random.seed(99)
-    fig = plt.figure(figsize=(18, 12))
-    gs = gridspec.GridSpec(3, 4, hspace=0.5, wspace=0.3)
-    for row, name in enumerate(models.keys()):
-        model = models[name].to(device)
-        model.eval()
-        for col, freq_idx in enumerate(range(NUM_CLASSES)):
-            ax = fig.add_subplot(gs[row, col])
-            mixed, components = generate_combined(
-                list(FREQUENCIES),
-                duration=10.0,
-                sample_rate=SAMPLE_RATE,
-                noise_std=NOISE_SIGMA,
-            )
-            clean_win = extract_windows(components[freq_idx], WINDOW_LEN)[0]
-            mixed_arr, pred = _predict_window(model, mixed, freq_idx, device)
-            x = np.arange(WINDOW_LEN)
-            ax.plot(x, mixed_arr, color="gray", alpha=0.5, linewidth=1.5, label="Mixed")
-            ax.plot(
-                x, clean_win, color="green", linewidth=2, linestyle="--", label="Truth"
-            )
-            ax.plot(x, pred, color="red", linewidth=2, label="Predicted")
-            mse = float(np.mean((pred - clean_win) ** 2))
-            if row == 0:
-                ax.set_title(FREQ_NAMES[col], fontsize=12, fontweight="bold")
-            if col == 0:
-                ax.set_ylabel(name, fontsize=12, fontweight="bold")
-            ax.set_xlabel("Sample")
-            ax.grid(True, alpha=0.3)
-            ax.annotate(
-                f"MSE={mse:.4f}",
-                xy=(0.05, 0.05),
-                xycoords="axes fraction",
-                fontsize=8,
-                color="red",
-            )
-            if row == 0 and col == 0:
-                ax.legend(fontsize=7, loc="upper right")
-    fig.suptitle(
-        "Frequency Extraction: Mixed Input -> Predicted vs Ground Truth\n"
-        "(Gray=Mixed, Green=Truth, Red=Predicted)",
-        fontsize=13,
-        fontweight="bold",
-    )
-    plt.savefig("assets/signal_extraction.png", dpi=150, bbox_inches="tight")
-    print("Saved: assets/signal_extraction.png", flush=True)
-    plt.show()
+models = {"MLP": MLP(), "RNN": RNNModel(), "LSTM": LSTMModel()}
+for name, model in models.items():
+    print(f"{name}: {count_parameters(model):,} trainable parameters", flush=True)
+
+results = compare_models(
+    models, train_loader, val_loader, epochs=EPOCHS, lr=LR, device=DEVICE
+)
+
+print("\n\n=== Final Results ===", flush=True)
+print(f"{'Model':<8} {'Final Val MSE':>15}", flush=True)
+print("-" * 25, flush=True)
+for name, hist in results.items():
+    print(f"{name:<8} {hist['val_loss'][-1]:>15.6f}", flush=True)
