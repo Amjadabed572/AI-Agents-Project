@@ -2,14 +2,14 @@
 plot_losses.py - Loss curve and model comparison visualizations for hw1.
 """
 
+
 import matplotlib.pyplot as plt
-from typing import Dict, List
 
 COLORS = {"MLP": "#2196F3", "RNN": "#FF5722", "LSTM": "#4CAF50"}
 EPOCHS = 50
 
 
-def plot_loss_curves(histories: Dict[str, Dict[str, List[float]]]) -> None:
+def plot_loss_curves(histories: dict[str, dict[str, list[float]]]) -> None:
     """
     Plot train/val MSE loss curves for all models side by side.
 
@@ -60,7 +60,7 @@ def plot_loss_curves(histories: Dict[str, Dict[str, List[float]]]) -> None:
     plt.show()
 
 
-def plot_final_comparison(histories: Dict[str, Dict[str, List[float]]]) -> None:
+def plot_final_comparison(histories: dict[str, dict[str, list[float]]]) -> None:
     """
     Bar chart comparing final validation MSE across all models.
 

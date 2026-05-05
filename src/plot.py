@@ -3,13 +3,14 @@ plot.py - Entry point for all hw1 visualizations.
 Trains all models and generates loss curves, signal extraction, comparison chart.
 """
 
+
 import torch
-from typing import Dict, List
+
 from hw1.dataset import get_dataloaders
-from hw1.models import MLP, RNNModel, LSTMModel
-from hw1.train import train_model
-from hw1.plot_losses import plot_loss_curves, plot_final_comparison
+from hw1.models import MLP, LSTMModel, RNNModel
+from hw1.plot_losses import plot_final_comparison, plot_loss_curves
 from hw1.plot_signals import plot_signal_extraction
+from hw1.train import train_model
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 EPOCHS = 50
@@ -23,12 +24,12 @@ def train_all() -> tuple:  # type: ignore[type-arg]
     Returns (models dict, histories dict).
     """
     train_loader, val_loader = get_dataloaders(batch_size=64, samples_per_freq=500)
-    models: Dict[str, torch.nn.Module] = {
+    models: dict[str, torch.nn.Module] = {
         "MLP": MLP(),
         "RNN": RNNModel(),
         "LSTM": LSTMModel(),
     }
-    histories: Dict[str, Dict[str, List[float]]] = {}
+    histories: dict[str, dict[str, list[float]]] = {}
     for name, model in models.items():
         print(f"Training {name}...", flush=True)
         hist = train_model(

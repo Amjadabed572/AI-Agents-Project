@@ -3,8 +3,8 @@ main.py - Entry point for HW1.
 Trains MLP, RNN, and LSTM on frequency extraction and prints results.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -12,11 +12,11 @@ import torch
 
 print("Starting...", flush=True)
 
-from hw1.dataset import get_dataloaders
 from hw1.constants import FREQUENCIES
-from hw1.models import MLP, RNNModel, LSTMModel
-from hw1.train import compare_models, count_parameters
+from hw1.dataset import get_dataloaders
+from hw1.models import MLP, LSTMModel, RNNModel
 from hw1.shared.version import get_version
+from hw1.train import compare_models, count_parameters
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 EPOCHS = 50

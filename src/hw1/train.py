@@ -4,10 +4,10 @@ Provides train_epoch, evaluate, train_model, compare_models, count_parameters.
 """
 
 import time
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from typing import Dict, List
 
 
 def train_epoch(
@@ -58,7 +58,7 @@ def train_model(
     lr: float = 1e-3,
     device: torch.device = torch.device("cpu"),
     verbose: bool = True,
-) -> Dict[str, List[float]]:
+) -> dict[str, list[float]]:
     """
     Full training run for one model.
 
@@ -67,7 +67,7 @@ def train_model(
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
-    history: Dict[str, List[float]] = {"train_loss": [], "val_loss": []}
+    history: dict[str, list[float]] = {"train_loss": [], "val_loss": []}
     for epoch in range(1, epochs + 1):
         t0 = time.time()
         tr = train_epoch(model, train_loader, optimizer, criterion, device)
@@ -85,13 +85,13 @@ def train_model(
 
 
 def compare_models(
-    models: Dict[str, nn.Module],
+    models: dict[str, nn.Module],
     train_loader: DataLoader,
     val_loader: DataLoader,
     epochs: int = 50,
     lr: float = 1e-3,
     device: torch.device = torch.device("cpu"),
-) -> Dict[str, Dict[str, List[float]]]:
+) -> dict[str, dict[str, list[float]]]:
     """Train all models and return their loss histories."""
     results = {}
     for name, model in models.items():

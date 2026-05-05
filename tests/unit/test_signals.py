@@ -3,21 +3,20 @@ test_signals.py - Unit tests for signal generation, helpers, and dataset.
 Run with: pytest tests/ -v
 """
 
-import pytest
 import numpy as np
+import pytest
 import torch
 from torch.utils.data import DataLoader
 
 from hw1.constants import (
-    FREQUENCIES,
-    SAMPLE_RATE,
-    WINDOW_LEN,
-    NUM_CLASSES,
-    SIGNAL_DURATION,
     AMPLITUDE,
+    NUM_CLASSES,
+    SAMPLE_RATE,
+    SIGNAL_DURATION,
+    WINDOW_LEN,
 )
-from hw1.signals import generate_sine, generate_combined, one_hot, extract_windows
 from hw1.dataset import SineDataset, get_dataloaders
+from hw1.signals import extract_windows, generate_combined, generate_sine, one_hot
 
 
 class TestGenerateSine:

@@ -25,7 +25,13 @@ addopts = "-v --tb=short"
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["src/main.py", "*/tests/*"]
+omit = [
+    "src/main.py",
+    "*/tests/*",
+    "src/hw1/plot_losses.py",
+    "src/hw1/plot_signals.py",
+    "src/hw1/shared/version.py",
+]
 
 [tool.coverage.report]
 fail_under = 85

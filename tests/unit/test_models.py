@@ -6,10 +6,10 @@ Run with: pytest tests/ -v
 import pytest
 import torch
 
-from hw1.constants import WINDOW_LEN, NUM_CLASSES
-from hw1.models import MLP, RNNModel, LSTMModel, OUTPUT_SIZE
-from hw1.train import train_epoch, evaluate, count_parameters
+from hw1.constants import NUM_CLASSES, WINDOW_LEN
 from hw1.dataset import get_dataloaders
+from hw1.models import MLP, OUTPUT_SIZE, LSTMModel, RNNModel
+from hw1.train import count_parameters, evaluate, train_epoch
 
 
 def _batch(B: int = 4) -> tuple:  # type: ignore[type-arg]

@@ -3,21 +3,20 @@ dataset.py - SineDataset and DataLoader factory for hw1.
 Task: combined noisy signal window + 1-hot label -> clean target frequency window.
 """
 
+
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
-from typing import List, Tuple
+from torch.utils.data import DataLoader, Dataset
 
 from hw1.constants import (
-    FREQUENCIES,
-    SAMPLE_RATE,
-    WINDOW_LEN,
-    SIGNAL_DURATION,
     AMPLITUDE,
+    FREQUENCIES,
     NOISE_SIGMA,
-    NUM_CLASSES,
+    SAMPLE_RATE,
+    SIGNAL_DURATION,
+    WINDOW_LEN,
 )
-from hw1.signals import generate_combined, one_hot, extract_windows
+from hw1.signals import extract_windows, generate_combined, one_hot
 
 
 class SineDataset(Dataset):
@@ -33,7 +32,7 @@ class SineDataset(Dataset):
 
     def __init__(
         self,
-        frequencies: List[float] = FREQUENCIES,
+        frequencies: list[float] = FREQUENCIES,
         duration: float = SIGNAL_DURATION,
         sample_rate: int = SAMPLE_RATE,
         window_len: int = WINDOW_LEN,
@@ -46,15 +45,15 @@ class SineDataset(Dataset):
         np.random.seed(seed)
         self.window_len = window_len
         self.frequencies = frequencies
-        self.mixed_windows: List[np.ndarray] = []
-        self.clean_windows: List[np.ndarray] = []
-        self.labels: List[np.ndarray] = []
-        self.freq_indices: List[int] = []
+        self.mixed_windows: list[np.ndarray] = []
+        self.clean_windows: list[np.ndarray] = []
+        self.labels: list[np.ndarray] = []
+        self.freq_indices: list[int] = []
         self._generate(frequencies, duration, sample_rate, noise_std, samples_per_freq)
 
     def _generate(
         self,
-        frequencies: List[float],
+        frequencies: list[float],
         duration: float,
         sample_rate: int,
         noise_std: float,
@@ -103,7 +102,7 @@ def get_dataloaders(
     train_split: float = 0.8,
     samples_per_freq: int = 500,
     seed: int = 42,
-) -> Tuple[DataLoader, DataLoader]:
+) -> tuple[DataLoader, DataLoader]:
     """Build train/val DataLoaders with reproducible split."""
     dataset = SineDataset(samples_per_freq=samples_per_freq, seed=seed)
     n_train = int(len(dataset) * train_split)

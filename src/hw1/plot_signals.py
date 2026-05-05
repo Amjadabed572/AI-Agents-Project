@@ -3,15 +3,16 @@ plot_signals.py - Signal extraction visualization for hw1.
 Shows mixed input vs predicted output vs ground truth per model and frequency.
 """
 
+
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-from typing import Dict, List
-from hw1.constants import FREQUENCIES, SAMPLE_RATE, WINDOW_LEN, NUM_CLASSES, NOISE_SIGMA
-from hw1.signals import generate_combined, extract_windows
 
-FREQ_NAMES: List[str] = [f"{int(f)} Hz" for f in FREQUENCIES]
+from hw1.constants import FREQUENCIES, NOISE_SIGMA, NUM_CLASSES, SAMPLE_RATE, WINDOW_LEN
+from hw1.signals import extract_windows, generate_combined
+
+FREQ_NAMES: list[str] = [f"{int(f)} Hz" for f in FREQUENCIES]
 
 
 def _predict_window(
@@ -32,7 +33,7 @@ def _predict_window(
 
 
 def plot_signal_extraction(
-    models: Dict[str, torch.nn.Module],
+    models: dict[str, torch.nn.Module],
     device: torch.device,
 ) -> None:
     """

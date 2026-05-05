@@ -3,14 +3,15 @@ signals.py - Signal generation utilities for hw1.
 Generates individual sine waves and combined multi-frequency signals.
 """
 
+
 import numpy as np
-from typing import List, Tuple
+
 from hw1.constants import (
+    AMPLITUDE,
     FREQUENCIES,
+    NUM_CLASSES,
     SAMPLE_RATE,
     SIGNAL_DURATION,
-    AMPLITUDE,
-    NUM_CLASSES,
     WINDOW_LEN,
 )
 
@@ -43,12 +44,12 @@ def generate_sine(
 
 
 def generate_combined(
-    frequencies: List[float] = FREQUENCIES,
+    frequencies: list[float] = FREQUENCIES,
     duration: float = SIGNAL_DURATION,
     sample_rate: int = SAMPLE_RATE,
     amplitude: float = AMPLITUDE,
     noise_std: float = 0.0,
-) -> Tuple[np.ndarray, List[np.ndarray]]:
+) -> tuple[np.ndarray, list[np.ndarray]]:
     """
     Generate combined signal = sum of all frequency components + noise.
 

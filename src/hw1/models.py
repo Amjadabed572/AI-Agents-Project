@@ -6,7 +6,8 @@ Input: combined mixed signal window + 1-hot label -> clean target window.
 
 import torch
 import torch.nn as nn
-from hw1.constants import WINDOW_LEN, NUM_CLASSES
+
+from hw1.constants import NUM_CLASSES, WINDOW_LEN
 
 INPUT_SIZE = WINDOW_LEN + NUM_CLASSES  # 14: 10 samples + 4 label
 OUTPUT_SIZE = WINDOW_LEN  # 10: predicted clean window
