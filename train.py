@@ -31,7 +31,7 @@ def train_epoch(
         optimizer.step()
         total_loss += loss.item() * mixed.size(0)
 
-    return total_loss / len(loader.dataset)
+    return total_loss / max(len(loader.dataset), 1)  # type: ignore[arg-type]
 
 
 def evaluate(
@@ -51,7 +51,7 @@ def evaluate(
             pred = model(mixed, label)
             loss = criterion(pred, clean)
             total_loss += loss.item() * mixed.size(0)
-    return total_loss / len(loader.dataset)
+    return total_loss / max(len(loader.dataset), 1)  # type: ignore[arg-type]
 
 
 def train_model(

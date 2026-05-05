@@ -11,7 +11,7 @@ from torch.utils.data import Dataset, DataLoader
 from typing import Tuple, List
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-FREQUENCIES = [1, 5, 10, 20]  # Hz (chosen: well-separated, log-scale spread)
+FREQUENCIES: List[float] = [1.0, 5.0, 10.0, 20.0]  # Hz (chosen: well-separated)
 SAMPLE_RATE = 200  # samples/sec (≥ 2 × 20 Hz = 40 Hz, Nyquist)
 WINDOW_LEN = 10  # context window in samples
 SIGNAL_DURATION = 10.0  # seconds

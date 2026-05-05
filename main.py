@@ -4,7 +4,6 @@ Trains MLP, RNN, and LSTM on the frequency extraction task and prints results.
 Task: given a combined noisy signal window + 1-hot label, extract target frequency.
 """
 
-import sys
 import torch
 
 print("Starting...", flush=True)

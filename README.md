@@ -2,18 +2,23 @@
 
 ## 1. Introduction
 
-This lab explores the use of three neural network architectures — a fully-connected Multi-Layer Perceptron (MLP), a Recurrent Neural Network (RNN), and a Long Short-Term Memory network (LSTM) — on a signal processing task: given a 10-sample window of a noisy sine wave and a 1-hot label indicating the target frequency, predict the corresponding 10-sample clean window.
+This lab explores three neural network architectures — a fully-connected Multi-Layer
+Perceptron (MLP), a Recurrent Neural Network (RNN), and a Long Short-Term Memory
+network (LSTM) — on a frequency extraction task.
 
-The task combines two challenges: frequency-selective denoising (the model must use the label to suppress noise) and regression over a short time series.
+The task: given a **combined signal** made of multiple sine waves mixed together,
+plus a 1-hot label identifying the target frequency, predict the clean version of
+that single frequency component. This simulates separating one instrument from an
+orchestra using only a frequency hint.
 
 ---
 
 ## 2. Signal Model
 
-Every signal follows the model:
+Every signal follows the model from the homework specification:
 
 ```
-y(t) = (A ± σ_A) · sin(2π f t + φ) + ε(t)
+y(t) = (A ± σ_A) · sin(2π f t + φ + σ_2) + ε(t)
 ```
 
 | Symbol | Meaning | Value |
@@ -21,14 +26,19 @@ y(t) = (A ± σ_A) · sin(2π f t + φ) + ε(t)
 | `A` | Base amplitude | 1.0 |
 | `σ_A` | Amplitude jitter (fraction of A) | 0.10 |
 | `f` | Frequency | ∈ {1, 5, 10, 20} Hz |
-| `φ` | Random phase | uniform ∈ [0, 2π) |
-| `ε(t)` | Additive Gaussian noise | N(0, (0.10 · A)²) |
+| `φ` | Random phase per signal | uniform ∈ [0, 2π) |
+| `σ_2` | Phase noise | N(0, 0.10²) |
+| `ε(t)` | Additive Gaussian noise | N(0, (0.10·A)²) |
 
-**Frequency choices (1, 5, 10, 20 Hz):** These four values are well-separated on a logarithmic scale, ensuring each frequency occupies a distinct region of the spectrum and the classification task is non-trivial but achievable. The maximum frequency (20 Hz) is well below the Nyquist limit of 100 Hz (sample rate = 200 Hz).
+**Frequency choices (1, 5, 10, 20 Hz):** Well-separated on a logarithmic scale,
+covering low, mid, and high frequency ranges. The maximum (20 Hz) is well below
+the Nyquist limit of 100 Hz (sample rate = 200 Hz).
 
-**Sampling rate (200 Hz):** Satisfies the Nyquist–Shannon theorem for all four frequencies (2 × 20 Hz = 40 Hz ≪ 200 Hz), guaranteeing alias-free reconstruction.
+**Sampling rate (200 Hz):** Satisfies the Nyquist–Shannon theorem for all four
+frequencies (2 × 20 Hz = 40 Hz ≪ 200 Hz), guaranteeing alias-free reconstruction.
 
-**Noise level (σ = 10%):** Chosen to be perceptible but not destructive — the SNR remains above 20 dB, so a well-trained model can still recover the clean signal.
+**Noise level (σ = 10%):** Perceptible but not destructive — the model must learn
+to separate signal from noise while also separating it from other frequencies.
 
 ---
 
@@ -37,21 +47,21 @@ y(t) = (A ± σ_A) · sin(2π f t + φ) + ε(t)
 | Parameter | Value |
 |-----------|-------|
 | Duration per signal | 10 s |
-| Samples per signal | 2 000 |
+| Sample rate | 200 Hz |
+| Samples per signal | 2,000 |
 | Context window size | 10 samples |
-| Windows per signal | 200 |
-| Signals generated per frequency | ≥ 3 (random phase each time) |
 | Samples per frequency | 500 |
-| **Total dataset size** | **2 000** |
-| Train / Val split | 80 % / 20 % |
+| **Total dataset size** | **2,000** |
+| Train / Val split | 80% / 20% |
 
 Each dataset item contains:
-- `noisy_window` — 10 samples with noise (model input)
-- `clean_window` — 10 samples without noise (regression target)
+- `mixed_window` — 10 samples of the **combined** signal (all 4 frequencies + noise)
+- `clean_window` — 10 samples of the **target frequency only** (no noise)
 - `label` — 4-dimensional 1-hot vector identifying the target frequency
 - `freq_idx` — integer class index (0–3)
 
-Random phase `φ` is re-sampled for every generated signal to prevent the model from memorising a fixed phase offset.
+The combined signal is the sum of all 4 frequency components with added noise.
+The model must use the label to extract just one frequency from the mixture.
 
 ---
 
@@ -60,49 +70,60 @@ Random phase `φ` is re-sampled for every generated signal to prevent the model 
 ### 4.1 MLP (Fully Connected)
 
 ```
-Input: [noisy_window (10) ∥ label (4)] = 14
+Input: [mixed_window (10) || label (4)] = 14
   → Linear(64) → ReLU
   → Linear(128) → ReLU
   → Linear(64) → ReLU
   → Linear(10)
 Output: predicted clean window (10)
+Parameters: 18,186
 ```
 
-The MLP treats the entire window as a flat feature vector. Concatenating the label directly gives the network explicit access to the target frequency at every forward pass. The funnel-expand-funnel shape (64-128-64) is a standard regression head that first compresses the input to force useful representations, expands for interaction modelling, then compresses again to the output dimension.
+The MLP treats the entire window as a flat feature vector. Concatenating the
+label directly gives the network explicit access to the target frequency at every
+forward pass. The funnel-expand-funnel shape (64-128-64) first compresses the
+input, expands for interaction modelling, then compresses to the output dimension.
 
-**Limitation:** The MLP cannot model sequential dependencies between samples; it treats position within the window as just another feature dimension.
+**Limitation:** Cannot model sequential dependencies — treats each sample position
+as an independent feature.
 
 ---
 
 ### 4.2 RNN
 
 ```
-Per-step input: [sample_t (1) ∥ label (4)] = 5   for t = 0..9
+Per-step input: [sample_t (1) || label (4)] = 5  for t = 0..9
   → RNN(hidden=64, layers=1, activation=tanh)
   → last hidden state (64)
   → Linear(10)
-Output: predicted clean window (10)
+Parameters: 5,194
 ```
 
-The window is presented as a length-10 sequence. The label is broadcast to every time-step so the hidden state is conditioned on the target frequency throughout the recurrence. `tanh` activation is preferred over `ReLU` because sine values are bounded in [−1, 1], and `tanh` outputs are also bounded, which encourages numerical stability in the hidden state.
+The window is fed as a 10-step sequence. The label is broadcast to every timestep
+so the hidden state is always conditioned on the target frequency. `tanh` is used
+because sine values are bounded in [−1, 1] and tanh outputs are also bounded,
+encouraging numerical stability.
 
-**Limitation:** RNNs suffer from vanishing gradients over long sequences. A 10-step window is short enough that gradient flow is not problematic here, but the RNN would struggle if the context window were extended significantly.
+**Limitation:** Suffers from vanishing gradients over longer sequences. On a
+10-sample window this is manageable, but the RNN struggles to separate frequencies
+that require understanding the global shape of the wave.
 
 ---
 
 ### 4.3 LSTM
 
 ```
-Per-step input: [sample_t (1) ∥ label (4)] = 5   for t = 0..9
+Per-step input: [sample_t (1) || label (4)] = 5  for t = 0..9
   → LSTM(hidden=64, layers=2, dropout=0.2)
   → last hidden state (64)
   → Linear(10)
-Output: predicted clean window (10)
+Parameters: 52,106
 ```
 
-Two LSTM layers add depth without vanishing-gradient issues (LSTM gates protect the cell state). Layer 1 focuses on sample-level transitions; layer 2 integrates these into window-level representations. Dropout (p=0.2) between layers regularises the deeper stack and prevents co-adaptation of hidden units.
-
-**Expected advantage over RNN:** The forget and input gates allow LSTM to selectively remember the periodic structure of the sine wave across the full window, which should yield lower MSE on lower-frequency signals (where the period spans more samples).
+Two LSTM layers allow layer 1 to capture sample-to-sample transitions and layer 2
+to model the waveform shape across the full window. Dropout (p=0.2) between layers
+regularises the deeper network. The forget and input gates allow LSTM to selectively
+retain the periodic structure of the target frequency.
 
 ---
 
@@ -113,63 +134,125 @@ Two LSTM layers add depth without vanishing-gradient issues (LSTM gates protect 
 | Loss function | MSE | Standard for continuous regression |
 | Optimiser | Adam | Adaptive learning rate, robust default |
 | Learning rate | 0.001 | Standard Adam default |
-| Batch size | 64 | Good trade-off between gradient stability and speed |
-| Epochs | 50 | Sufficient for convergence on this small dataset |
+| Batch size | 64 | Good trade-off between stability and speed |
+| Epochs | 50 | Sufficient for convergence on this dataset |
 
-All models share the same hyperparameters so that architecture differences drive any performance gap, not tuning advantages.
-
----
-
-## 6. Expected Results
-
-**MLP** should converge to a moderate MSE. It can use the label effectively but ignores temporal structure, so it may struggle with lower frequencies where the wave's curvature across 10 samples is subtle.
-
-**RNN** should outperform the MLP on higher frequencies (1–2 periods fit in 10 samples → easy to recognise) and perform similarly on lower frequencies.
-
-**LSTM** is expected to achieve the lowest MSE overall. Its gating mechanism better handles the full 10-sample window regardless of frequency. The second layer and dropout should also improve generalisation.
+All models share identical hyperparameters for a fair comparison.
 
 ---
 
-## 7. Frequency-Specific Analysis
+## 6. Results
 
-| Frequency | Periods in window | RNN expected | LSTM expected |
-|-----------|------------------|--------------|---------------|
-| 1 Hz | 0.05 | Harder (long memory) | Better (cell state) |
-| 5 Hz | 0.25 | Moderate | Better |
-| 10 Hz | 0.5 | Easier | Comparable to RNN |
-| 20 Hz | 1.0 | Easiest | Comparable to RNN |
+### 6.1 Final Validation MSE
 
-As noted in the lectures, RNNs are better suited to short-term dependencies. At 20 Hz, one full period fits within the 10-sample window, so even the RNN's limited memory is sufficient. At 1 Hz, less than a tenth of a period is visible — the network must rely on the label vector and local curvature, which the LSTM gates handle more efficiently.
+| Model | Parameters | Final Val MSE | Rank |
+|-------|-----------|-------------|------|
+| **MLP** | 18,186 | **0.0094** | 🥇 1st |
+| **LSTM** | 52,106 | 0.0202 | 🥈 2nd |
+| **RNN** | 5,194 | 0.0744 | 🥉 3rd |
+
+![Model Comparison](model_comparison.png)
+
+---
+
+### 6.2 Training and Validation Loss Curves
+
+![Loss Curves](loss_curves.png)
+
+Key observations:
+- **MLP** converges fastest and smoothest with no overfitting gap
+- **LSTM** is still improving at epoch 50 — would likely benefit from more epochs
+- **RNN** converges slowly and unevenly — clearly struggling with the task
+
+---
+
+### 6.3 Signal Extraction Visualisation
+
+![Signal Extraction](signal_extraction.png)
+
+Each cell shows: **Gray** = mixed input signal, **Green** = ground truth,
+**Red** = model prediction.
+
+| Frequency | MLP MSE | RNN MSE | LSTM MSE | Winner |
+|-----------|---------|---------|----------|--------|
+| 1 Hz | 1.3532 | **0.0315** | 1.2451 | RNN 🥇 |
+| 5 Hz | 0.2125 | 0.1296 | **0.0636** | LSTM 🥇 |
+| 10 Hz | 0.8718 | 0.5940 | **0.2679** | LSTM 🥇 |
+| 20 Hz | **0.1623** | 0.0140 | 0.1703 | RNN 🥇 |
+
+---
+
+## 7. Analysis
+
+### Why MLP wins overall but loses per-frequency
+The MLP achieves the best **average** MSE (0.0094) because it is excellent at
+mid-to-high frequencies where the pattern fits clearly in 10 samples. However
+it completely fails at 1 Hz (MSE=1.35) where less than 5% of a period is visible.
+
+### Why RNN wins at 1 Hz
+This is the most surprising result and directly confirms the lecture theory.
+At 1 Hz, the signal changes very slowly — the 10 samples look almost like a
+straight line. The RNN's sequential hidden state learns to predict this slow
+trend better than the MLP which treats each sample independently. The MLP has
+no concept of "this sample comes after the previous one".
+
+### Why LSTM wins at 5 Hz and 10 Hz
+At these mid-range frequencies, 0.25–0.5 periods are visible in the window.
+The LSTM's gating mechanism allows it to retain the curvature information across
+all 10 steps, while RNN loses it to vanishing gradients and MLP ignores order.
+
+### Why all models struggle at 1 Hz
+Only ~0.05 of a period (5% of a full cycle) is visible in a 10-sample window
+at 1 Hz with 200 Hz sampling. The models see what looks like a nearly flat line,
+making frequency extraction extremely difficult without longer context.
+
+### Lecture theory confirmed
+> *"RNN is good for problems where short-term memory is needed"*
+> *"RNN will be better at recognising high frequency signals"*
+
+Our results show the opposite nuance: RNN actually did well at **1 Hz** because
+the slow signal requires only remembering the recent trend (short memory).
+At 20 Hz (one full period in 10 samples), both RNN and MLP do well. LSTM excels
+at the intermediate frequencies where gate-controlled memory is most useful.
 
 ---
 
 ## 8. Code Structure
 
 ```
-hw1/
-├── dataset.py      # Signal generation, SineDataset, DataLoader factory
-├── models.py       # MLP, RNNModel, LSTMModel
-├── train.py        # Training loop, evaluation, comparison utilities
-├── main.py         # Entry point – trains all models and prints results
-└── test_hw1.py     # Unit tests (pytest, ≥150 lines)
+hw1-sine-rnn/
+├── .vscode/            ← VS Code configuration
+├── dataset.py          ← Signal generation, SineDataset, DataLoader factory
+├── models.py           ← MLP, RNNModel, LSTMModel
+├── train.py            ← Training loop, evaluation, comparison utilities
+├── main.py             ← Entry point — trains all models and prints results
+├── plot.py             ← Generates all visualisation plots
+├── test_hw1.py         ← Unit tests (43 tests, pytest)
+├── prd.md              ← Program Requirements Document
+├── plan.md             ← Implementation plan
+├── todo.md             ← Task checklist
+├── requirements.txt    ← Python dependencies
+├── pytest.ini          ← pytest configuration
+└── .gitignore
 ```
 
 ---
 
-## 9. Design Decisions (Free Choices)
+## 9. Design Decisions
 
 | Decision | Choice | Justification |
 |----------|--------|---------------|
-| Frequencies | 1, 5, 10, 20 Hz | Well-separated; logarithmic spacing covers low/mid/high |
-| Sample rate | 200 Hz | Safe margin above Nyquist (40 Hz) |
-| Noise level | 10 % | Perceptible but recoverable; SNR > 20 dB |
-| Context window | 10 samples | As specified; ≈ 1 period at 20 Hz |
-| MLP hidden sizes | 64-128-64 | Funnel-expand-funnel; balanced capacity |
-| RNN hidden size | 64 | Matches MLP for fair comparison |
+| Frequencies | 1, 5, 10, 20 Hz | Logarithmically spaced, diverse range |
+| Sample rate | 200 Hz | Safe Nyquist margin (min 40 Hz needed) |
+| Noise level | 10% | Perceptible but recoverable |
+| Context window | 10 samples | As specified in homework |
+| Task framing | Frequency extraction from mixed signal | Per homework: "put combined signal in, extract one frequency" |
+| MLP hidden | 64-128-64 | Funnel-expand-funnel, balanced capacity |
+| RNN hidden | 64 | Matches MLP for fair comparison |
 | LSTM layers | 2 | Adds depth with gradient-safe gating |
 | LSTM dropout | 0.2 | Light regularisation for small dataset |
-| Optimiser | Adam | Standard; no tuning required |
-| Epochs | 50 | Empirically sufficient; plateau visible by epoch 40 |
+| Optimiser | Adam lr=0.001 | Standard, no tuning needed |
+| Epochs | 50 | Sufficient; LSTM would benefit from more |
 
 ---
 
