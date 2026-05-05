@@ -175,9 +175,7 @@ hw1/
 
 ## 10. GitHub Repository
 
-> **[https://github.com/YOUR_USERNAME/hw1-sine-rnn](https://github.com/YOUR_USERNAME/hw1-sine-rnn)**
-
-*(Replace with your actual repository URL before submission.)*
+https://github.com/Amjadabed572/hw1-sine-rnn.git
 
 ---
 

@@ -121,7 +121,7 @@ def compare_models(
                                epochs=epochs, lr=lr, device=device)
         results[name] = history
         final_val = history["val_loss"][-1]
-        print(f"  → Final Val MSE: {final_val:.6f}")
+        print(f"  -> Final Val MSE: {final_val:.6f}")
     return results
 
 
