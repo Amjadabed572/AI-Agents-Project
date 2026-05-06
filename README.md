@@ -1,7 +1,7 @@
 # HW1 — Signal Frequency Extraction with MLP, RNN, and LSTM
 
 **Group:** amj-naji  
-**GitHub:** https://github.com/Amjadabed572/hw1-sine-rnn  
+**GitHub:** https://github.com/Amjadabed572/AI-Agents-Project.git
 **Version:** 1.00
 
 ---
@@ -24,6 +24,7 @@ python src/plot.py                                        # Generate plots
 pytest tests/ -v                                          # Run all tests
 pytest tests/ --cov=src/hw1 --cov-report=term-missing    # With coverage
 ```
+
 
 ---
 
