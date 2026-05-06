@@ -9,7 +9,7 @@
 ## Installation
 
 ```bash
-git clone https://github.com/Amjadabed572/hw1-sine-rnn.git
+git clone https://github.com/Amjadabed572/AI-Agents-Project.git
 cd hw1-sine-rnn
 uv venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
