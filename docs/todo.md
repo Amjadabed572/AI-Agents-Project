@@ -144,12 +144,12 @@
 ---
 
 ## SUBMISSION
-- [ ] Push all files to GitHub with meaningful commit history
-- [ ] Verify GitHub repo is public
-- [ ] Share repo with rmisegal@gmail.com
-- [ ] Fill out uoh-rl07-ex01.docx with student details
-- [ ] Add GitHub link to submission form
-- [ ] Export as PDF: amj-naji-ex01.pdf
-- [ ] Email PDF to rmisegal@gmail.com
-- [ ] Student 1 submits individually on Moodle
-- [ ] Student 2 submits individually on Moodle
+- [x] Push all files to GitHub with meaningful commit history
+- [x] Verify GitHub repo is public
+- [x] Share repo with rmisegal@gmail.com
+- [x] Fill out uoh-rl07-ex01.docx with student details
+- [x] Add GitHub link to submission form
+- [x] Export as PDF: amj-naji-ex01.pdf
+- [x] Email PDF to rmisegal@gmail.com
+- [x] Amjad Abd El Rahim submits individually on Moodle
+- [x] Naji Kayal submits individually on Moodle
