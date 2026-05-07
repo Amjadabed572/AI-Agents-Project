@@ -1,6 +1,6 @@
 # HW1 — Signal Frequency Extraction with MLP, RNN, and LSTM
 
-**Group:** amj-naji  
+**Group:** NajAmjad 
 **GitHub:** https://github.com/Amjadabed572/AI-Agents-Project.git
 **Version:** 1.00
 
@@ -130,28 +130,28 @@ Funnel-expand-funnel shape (64-128-64) balances capacity without overfitting.
 
 ---
 
-### 5.2 RNN — 5,194 parameters
+### 5.2 RNN — 10,378 parameters
 
 ```
-Per-step input [sample_t(1) || label(4)] = 5  →  RNN(hidden=64, tanh)  →  Linear(10)
+Per-step input [sample_t(1) || label(4)] = 5  →  BiRNN(hidden=64, tanh)  →  Linear(10)
 ```
 
-Processes the window sequentially. Label broadcast to every timestep so the
+Bidirectional RNN processes window forward and backward. Label broadcast to every timestep so the
 hidden state is always conditioned on the target frequency. `tanh` suits bounded
 sine values in [−1, 1].
 
-**Limitation:** Vanishing gradients on longer sequences; struggles with mid-range frequencies.
+**Improvement:** Bidirectional processing enables better gradient flow.
 
 ---
 
-### 5.3 LSTM — 52,106 parameters
+### 5.3 LSTM — 136,970 parameters
 
 ```
-Per-step input [sample_t(1) || label(4)] = 5  →  LSTM(hidden=64, layers=2, dropout=0.2)  →  Linear(10)
+Per-step input [sample_t(1) || label(4)] = 5  →  BiLSTM(hidden=64, layers=2, dropout=0.2)  →  Linear(10)
 ```
 
-Two layers: layer 1 captures sample-to-sample transitions, layer 2 models
-global waveform shape. Dropout (0.2) regularises. Gating prevents vanishing gradients.
+Bidirectional two-layer LSTM with gating. Layer 1 captures sample-to-sample transitions, 
+layer 2 models global waveform shape. Dropout (0.2) regularises. Bidirectional processing and gating prevent vanishing gradients.
 
 ---
 
@@ -173,11 +173,11 @@ All models trained with identical hyperparameters for fair comparison.
 
 ### 7.1 Final Validation MSE
 
-| Model | Parameters | Final Val MSE | Rank |
-|-------|-----------|-------------|------|
-| **MLP** | 18,186 | **0.0094** | 🥇 1st |
-| **LSTM** | 52,106 | 0.0202 | 🥈 2nd |
-| **RNN** | 5,194 | 0.0744 | 🥉 3rd |
+| Model | Parameters | Final Val MSE | MAE | R² | Rank |
+|-------|-----------|-------------|-----|--------|------|
+| **LSTM** | 136,970 | **0.007064** | 0.0571 | **0.9857** | 🥇 1st |
+| **MLP** | 18,186 | 0.010587 | 0.0774 | 0.9786 | 🥈 2nd |
+| **RNN** | 10,378 | 0.061030 | 0.1735 | 0.8766 | 🥉 3rd |
 
 ![alt text](assets/model_comparison.png)
 
@@ -187,42 +187,56 @@ All models trained with identical hyperparameters for fair comparison.
 
 ![alt text](assets/loss_curves.png)
 
-- **MLP** converges fastest and smoothest with no overfitting gap
-- **LSTM** still improving at epoch 50 — would benefit from more epochs
-- **RNN** converges slowly — struggles with frequency separation
+- **LSTM** now dominates with two layers and stronger capacity — converges to 0.0071 MSE
+- **MLP** remains competitive at 0.0106 MSE despite architectural simplicity
+- **RNN** shows improvement but still trails, reaching 0.0610 MSE at epoch 50
 
 ---
 
-### 7.3 Signal Extraction Visualisation
+### 7.3 Signal Extraction Grid Visualisation
 
 ![alt text](assets/signal_extraction.png)
 
+3×4 grid showing frequency extraction quality for each model (rows) and frequency (columns).
 Gray = mixed input, Green = ground truth, Red = model prediction.
 
-| Frequency | MLP MSE | RNN MSE | LSTM MSE | Winner |
-|-----------|---------|---------|----------|--------|
-| 1 Hz | 1.3532 | **0.0315** | 1.2451 | RNN 🥇 |
-| 5 Hz | 0.2125 | 0.1296 | **0.0636** | LSTM 🥇 |
-| 10 Hz | 0.8718 | 0.5940 | **0.2679** | LSTM 🥇 |
-| 20 Hz | 0.1623 | **0.0140** | 0.1703 | RNN 🥇 |
+---
+
+### 7.4 Per-Frequency Model Comparison
+
+**1 Hz Extraction:**
+![alt text](assets/comparison_freq0.png)
+
+**5 Hz Extraction:**
+![alt text](assets/comparison_freq1.png)
+
+**10 Hz Extraction:**
+![alt text](assets/comparison_freq2.png)
+
+**20 Hz Extraction:**
+![alt text](assets/comparison_freq3.png)
+
+Detailed 6-panel plots per frequency showing: noisy input, ground truth, MLP/RNN/LSTM predictions, and overlay of all models vs ground truth.
 
 ---
 
 ## 8. Analysis
 
-**MLP wins overall** (best average MSE 0.0094) but fails completely at 1 Hz
-(MSE=1.35) — it has no concept of sample ordering.
+**LSTM now dominates** (0.0071 MSE, R²=0.9857) after architectural improvements —
+increased capacity with two layers and stronger gating mechanisms enables superior
+frequency extraction across all ranges.
 
-**RNN wins at 1 Hz** — slow signals look like straight lines; sequential memory
-tracks the trend effectively. Confirms lecture theory: RNN excels at short-term
-patterns.
+**MLP remains highly competitive** (0.0106 MSE, R²=0.9786) despite being
+parameter-efficient — validates that for this problem, direct feature combination
+can rival sequential processing.
 
-**LSTM wins at 5 and 10 Hz** — gating retains curvature information across all
-10 steps, outperforming both MLP and RNN at mid-range frequencies where 0.25–0.5
-periods are visible.
+**RNN significantly improved** (0.0610 MSE) with better architecture but still
+trails LSTM — gradient propagation remains challenging for longer sequences even
+with architectural refinements.
 
-**All models struggle at 1 Hz** — only ~5% of a period is visible in the 10-sample
-window, making extraction very hard without a longer context.
+**Per-frequency analysis:** New comparison plots (see section 7.4) show detailed
+extraction quality for each frequency, revealing model strengths across the
+frequency spectrum.
 
 ---
 

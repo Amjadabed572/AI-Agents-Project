@@ -34,7 +34,7 @@ Per-step input: [sample_t (1) || label (4)] = 5
 | Layers | 2 | Layer 1: local transitions; Layer 2: global shape |
 | Dropout | 0.2 | Light regularisation between layers |
 | Activation | sigmoid (gates) + tanh (cell) | Standard LSTM gating |
-| Trainable params | 52,106 | Largest; 4 gates per cell vs 1 for RNN |
+| Trainable params | 136,970 | Largest; bidirectional + 2 layers + gating |
 
 ## 5. Gate Mechanisms
 - **Forget gate:** decides what to remove from cell state
@@ -47,7 +47,7 @@ Per-step input: [sample_t (1) || label (4)] = 5
 - Gradients flow to all parameters ✅
 - More parameters than RNN ✅
 - Loss decreases over training ✅
-- Validation MSE documented ✅ (achieved: 0.0202)
+- Validation MSE documented ✅ (achieved: 0.0071)
 
 ## 7. Test Cases
 - `test_output_shape`: verify (B, 10) output

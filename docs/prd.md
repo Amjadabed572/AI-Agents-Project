@@ -21,12 +21,12 @@ filtering using learned neural representations.
 - Document findings in a detailed lab report
 
 ## 4. KPIs and Acceptance Criteria
-| Metric | Target |
-|--------|--------|
-| All unit tests pass | 43/43 |
-| Final Val MSE (MLP) | < 0.05 |
-| Final Val MSE (RNN) | < 0.20 |
-| Final Val MSE (LSTM) | < 0.05 |
+| Metric | Target | Achieved |
+|--------|--------|----------|
+| All unit tests pass | 43/43 | ✅ 44/44 |
+| Final Val MSE (MLP) | < 0.05 | ✅ 0.0106 |
+| Final Val MSE (RNN) | < 0.20 | ✅ 0.0610 |
+| Final Val MSE (LSTM) | < 0.05 | ✅ 0.0071 |
 | Code line limit | ≤ 150 per file |
 | Test coverage | ≥ 85% |
 

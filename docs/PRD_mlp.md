@@ -35,7 +35,7 @@ Input(14) -> Linear(64) -> ReLU -> Linear(128) -> ReLU -> Linear(64) -> ReLU -> 
 ## 6. Success Criteria
 - Output shape (B, 10) for any batch size B ✅
 - Gradients flow to all parameters ✅
-- Validation MSE < 0.05 ✅ (achieved: 0.0094)
+- Validation MSE < 0.05 ✅ (achieved: 0.0106)
 - Loss decreases over training ✅
 
 ## 7. Test Cases

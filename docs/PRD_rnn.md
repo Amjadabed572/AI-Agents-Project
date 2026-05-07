@@ -31,7 +31,7 @@ Per-step input: [sample_t (1) || label (4)] = 5
 | Hidden size | 64 | Matches MLP for fair comparison |
 | Layers | 1 | Keeps parameter count low |
 | Activation | tanh | Bounded output suits sine values in [-1, 1] |
-| Trainable params | 5,194 | Smallest of three models |
+| Trainable params | 10,378 | Bidirectional RNN with forward+backward |
 
 ## 5. Limitations
 - Vanishing gradients on longer sequences (not an issue for 10 steps)
@@ -42,7 +42,7 @@ Per-step input: [sample_t (1) || label (4)] = 5
 - Output shape (B, 10) for any batch size B ✅
 - Gradients flow to all parameters ✅
 - Loss decreases over training ✅
-- Validation MSE documented ✅ (achieved: 0.0744)
+- Validation MSE documented ✅ (achieved: 0.0610)
 
 ## 7. Test Cases
 - `test_output_shape`: verify (B, 10) output

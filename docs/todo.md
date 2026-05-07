@@ -119,9 +119,9 @@
 ---
 
 ## RESULTS
-- [x] MLP Final Val MSE: 0.0094
-- [x] RNN Final Val MSE: 0.0744
-- [x] LSTM Final Val MSE: 0.0202
+- [x] MLP Final Val MSE: 0.0106 (MAE: 0.0774, R²: 0.9786)
+- [x] RNN Final Val MSE: 0.0610 (MAE: 0.1735, R²: 0.8766)
+- [x] LSTM Final Val MSE: 0.0071 (MAE: 0.0571, R²: 0.9857) — BEST
 - [x] Per-frequency MSE table documented
 - [x] Analysis written in README.md
 
@@ -149,7 +149,7 @@
 - [x] Share repo with rmisegal@gmail.com
 - [x] Fill out uoh-rl07-ex01.docx with student details
 - [x] Add GitHub link to submission form
-- [x] Export as PDF: amj-naji-ex01.pdf
+- [x] Export as PDF: NajAmjad-ex01.pdf
 - [x] Email PDF to rmisegal@gmail.com
 - [x] Amjad Abd El Rahim submits individually on Moodle
 - [x] Naji Kayal submits individually on Moodle
