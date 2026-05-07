@@ -1,6 +1,7 @@
 """
 main.py - Entry point for HW1.
 Trains MLP, RNN, and LSTM on frequency extraction and prints results.
+Reports MSE, MAE, and R² metrics for each model.
 """
 
 import os
@@ -8,15 +9,14 @@ import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-import torch
+import torch  # noqa: E402
 
-print("Starting...", flush=True)
-
-from hw1.constants import FREQUENCIES
-from hw1.dataset import get_dataloaders
-from hw1.models import MLP, LSTMModel, RNNModel
-from hw1.shared.version import get_version
-from hw1.train import compare_models, count_parameters
+from hw1.constants import FREQUENCIES  # noqa: E402
+from hw1.dataset import get_dataloaders  # noqa: E402
+from hw1.metrics import evaluate_metrics  # noqa: E402
+from hw1.models import LSTMModel, MLP, RNNModel  # noqa: E402
+from hw1.shared.version import get_version  # noqa: E402
+from hw1.train import compare_models, count_parameters  # noqa: E402
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 EPOCHS = 50
@@ -41,7 +41,11 @@ results = compare_models(
 )
 
 print("\n\n=== Final Results ===", flush=True)
-print(f"{'Model':<8} {'Final Val MSE':>15}", flush=True)
-print("-" * 25, flush=True)
-for name, hist in results.items():
-    print(f"{name:<8} {hist['val_loss'][-1]:>15.6f}", flush=True)
+print(f"{'Model':<8} {'MSE':>10} {'MAE':>10} {'R²':>10}", flush=True)
+print("-" * 42, flush=True)
+for name, model in models.items():
+    m = evaluate_metrics(model, val_loader, DEVICE)
+    print(
+        f"{name:<8} {m['mse']:>10.4f} {m['mae']:>10.4f} {m['r2']:>10.4f}",
+        flush=True,
+    )

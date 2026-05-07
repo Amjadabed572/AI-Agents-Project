@@ -41,10 +41,11 @@ def plot_loss_curves(histories: dict[str, dict[str, list[float]]]) -> None:
         ax.legend()
         ax.grid(True, alpha=0.3)
         final = hist["val_loss"][-1]
+        actual_epochs = len(hist["val_loss"])
         ax.annotate(
             f"Final: {final:.4f}",
-            xy=(EPOCHS, final),
-            xytext=(EPOCHS * 0.55, final * 1.3),
+            xy=(actual_epochs, final),
+            xytext=(actual_epochs * 0.55, final * 1.3),
             fontsize=9,
             color=COLORS[name],
         )

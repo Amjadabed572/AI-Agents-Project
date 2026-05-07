@@ -11,6 +11,7 @@ from hw1.constants import NUM_CLASSES, WINDOW_LEN
 
 INPUT_SIZE = WINDOW_LEN + NUM_CLASSES  # 14: 10 samples + 4 label
 OUTPUT_SIZE = WINDOW_LEN  # 10: predicted clean window
+NUM_DIRECTIONS = 2  # bidirectional = forward + backward
 
 
 class MLP(nn.Module):
@@ -48,12 +49,14 @@ class MLP(nn.Module):
 
 class RNNModel(nn.Module):
     """
-    Elman RNN for frequency extraction.
+    Bidirectional Elman RNN for frequency extraction.
 
-    Architecture: per-step input (1+4=5) -> RNN(hidden=64) -> Linear(10)
+    Architecture: per-step input (1+4=5) -> BiRNN(hidden=64) -> Linear(10)
 
-    Label is broadcast to every timestep so the hidden state is always
-    conditioned on the target frequency. tanh suits bounded sine values.
+    Bidirectional: processes window forward AND backward, doubling the
+    effective hidden size. Label broadcast to every timestep so the
+    hidden state is always conditioned on the target frequency.
+    tanh suits bounded sine values in [-1, 1].
     """
 
     def __init__(
@@ -63,31 +66,45 @@ class RNNModel(nn.Module):
         num_layers: int = 1,
         output_size: int = OUTPUT_SIZE,
     ):
-        """Initialise RNN with configurable hidden size and layers."""
+        """Initialise bidirectional RNN with configurable hidden size and layers."""
         super().__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
+        self.rnn = nn.RNN(
+            input_size,
+            hidden_size,
+            num_layers,
+            batch_first=True,
+            bidirectional=True,
+        )
+        # *2 because bidirectional concatenates forward + backward hidden states
+        self.fc = nn.Linear(hidden_size * NUM_DIRECTIONS, output_size)
 
     def forward(self, mixed_window: torch.Tensor, label: torch.Tensor) -> torch.Tensor:
         """Forward pass: feed window sequentially with label at each step."""
-        B = mixed_window.size(0)
-        label_exp = label.unsqueeze(1).expand(B, WINDOW_LEN, -1)
+        batch_size = mixed_window.size(0)
+        label_exp = label.unsqueeze(1).expand(batch_size, WINDOW_LEN, -1)
         x = torch.cat([mixed_window.unsqueeze(-1), label_exp], dim=-1)
-        h0 = torch.zeros(self.num_layers, B, self.hidden_size, device=x.device)
+        # h0: (num_layers * num_directions, batch, hidden_size)
+        h0 = torch.zeros(
+            self.num_layers * NUM_DIRECTIONS,
+            batch_size,
+            self.hidden_size,
+            device=x.device,
+        )
         out, _ = self.rnn(x, h0)
         return self.fc(out[:, -1, :])
 
 
 class LSTMModel(nn.Module):
     """
-    Two-layer LSTM for frequency extraction.
+    Bidirectional two-layer LSTM for frequency extraction.
 
-    Architecture: per-step input (1+4=5) -> LSTM(hidden=64, layers=2) -> Linear(10)
+    Architecture: per-step input (1+4=5) -> BiLSTM(hidden=64, layers=2) -> Linear(10)
 
+    Bidirectional: processes window in both directions for better phase tracking.
     Two layers: layer 1 captures sample transitions, layer 2 models waveform shape.
-    Dropout (0.2) regularises the deeper network. Gating prevents vanishing gradients.
+    Dropout (0.2) regularises. Gating prevents vanishing gradients.
     """
 
     def __init__(
@@ -98,7 +115,7 @@ class LSTMModel(nn.Module):
         dropout: float = 0.2,
         output_size: int = OUTPUT_SIZE,
     ):
-        """Initialise LSTM with configurable hidden size, layers, and dropout."""
+        """Initialise bidirectional LSTM with configurable hidden size and layers."""
         super().__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -107,16 +124,29 @@ class LSTMModel(nn.Module):
             hidden_size,
             num_layers,
             batch_first=True,
+            bidirectional=True,
             dropout=dropout if num_layers > 1 else 0.0,
         )
-        self.fc = nn.Linear(hidden_size, output_size)
+        # *2 because bidirectional concatenates forward + backward hidden states
+        self.fc = nn.Linear(hidden_size * NUM_DIRECTIONS, output_size)
 
     def forward(self, mixed_window: torch.Tensor, label: torch.Tensor) -> torch.Tensor:
         """Forward pass: feed window sequentially with label at each step."""
-        B = mixed_window.size(0)
-        label_exp = label.unsqueeze(1).expand(B, WINDOW_LEN, -1)
+        batch_size = mixed_window.size(0)
+        label_exp = label.unsqueeze(1).expand(batch_size, WINDOW_LEN, -1)
         x = torch.cat([mixed_window.unsqueeze(-1), label_exp], dim=-1)
-        h0 = torch.zeros(self.num_layers, B, self.hidden_size, device=x.device)
-        c0 = torch.zeros(self.num_layers, B, self.hidden_size, device=x.device)
+        # h0, c0: (num_layers * num_directions, batch, hidden_size)
+        h0 = torch.zeros(
+            self.num_layers * NUM_DIRECTIONS,
+            batch_size,
+            self.hidden_size,
+            device=x.device,
+        )
+        c0 = torch.zeros(
+            self.num_layers * NUM_DIRECTIONS,
+            batch_size,
+            self.hidden_size,
+            device=x.device,
+        )
         out, _ = self.lstm(x, (h0, c0))
         return self.fc(out[:, -1, :])
