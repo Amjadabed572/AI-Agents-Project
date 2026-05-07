@@ -3,13 +3,21 @@ plot.py - Entry point for all hw1 visualizations.
 Generates: loss curves, signal extraction grid, model comparison, 6-panel plots.
 """
 
-import torch
-from hw1.dataset import get_dataloaders
-from hw1.models import MLP, RNNModel, LSTMModel
-from hw1.train import train_model
-from hw1.plot_losses import plot_loss_curves, plot_final_comparison
-from hw1.plot_signals import plot_signal_extraction
-from hw1.plot_comparison import plot_comparison
+from __future__ import annotations
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+
+import torch  # noqa: E402
+
+from hw1.dataset import get_dataloaders  # noqa: E402
+from hw1.models import MLP, LSTMModel, RNNModel  # noqa: E402
+from hw1.plot_comparison import plot_comparison  # noqa: E402
+from hw1.plot_losses import plot_final_comparison, plot_loss_curves  # noqa: E402
+from hw1.plot_signals import plot_signal_extraction  # noqa: E402
+from hw1.train import train_model  # noqa: E402
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 EPOCHS = 50
@@ -41,16 +49,16 @@ def train_all() -> tuple:  # type: ignore[type-arg]
     return models, histories, train_loader, val_loader
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Train models and generate all plots."""
     print("Training all models for plotting...", flush=True)
-    models, histories, train_loader, val_loader = train_all()
+    models, histories, _, _ = train_all()
 
     print("\nGenerating plots...", flush=True)
     plot_loss_curves(histories)
     plot_signal_extraction(models, DEVICE)
     plot_final_comparison(histories)
 
-    # 6-panel comparison plots for each frequency
     for freq_idx in range(4):
         plot_comparison(
             models,
@@ -61,3 +69,7 @@ if __name__ == "__main__":
         )
 
     print("\nAll plots saved to assets/!", flush=True)
+
+
+if __name__ == "__main__":
+    main()

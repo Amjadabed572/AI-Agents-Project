@@ -3,6 +3,8 @@ test_models.py - Unit tests for model architectures and training loop.
 Run with: pytest tests/ -v
 """
 
+from __future__ import annotations
+
 import pytest
 import torch
 
@@ -12,10 +14,10 @@ from hw1.models import MLP, OUTPUT_SIZE, LSTMModel, RNNModel
 from hw1.train import count_parameters, evaluate, train_epoch
 
 
-def _batch(B: int = 4) -> tuple:  # type: ignore[type-arg]
+def _batch(batch_size: int = 4) -> tuple[torch.Tensor, torch.Tensor]:
     """Create a dummy batch of mixed windows and labels."""
-    mixed = torch.randn(B, WINDOW_LEN)
-    label = torch.zeros(B, NUM_CLASSES)
+    mixed = torch.randn(batch_size, WINDOW_LEN)
+    label = torch.zeros(batch_size, NUM_CLASSES)
     label[:, 0] = 1.0
     return mixed, label
 
@@ -83,15 +85,15 @@ class TestTraining:
     """Tests for training loop and evaluation."""
 
     @pytest.fixture(scope="class")
-    def loaders(self):  # type: ignore[override]
+    def loaders(self) -> tuple:  # type: ignore[type-arg]
         """Shared small DataLoaders fixture."""
         return get_dataloaders(batch_size=32, samples_per_freq=50, seed=7)
 
-    @pytest.mark.parametrize("ModelClass", [MLP, RNNModel, LSTMModel])
-    def test_loss_decreases(self, loaders, ModelClass) -> None:
+    @pytest.mark.parametrize("model_class", [MLP, RNNModel, LSTMModel])
+    def test_loss_decreases(self, loaders, model_class) -> None:
         """Training loss must decrease over 5 epochs for all models."""
         tr, _ = loaders
-        model = ModelClass().to("cpu")
+        model = model_class().to("cpu")
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
         criterion = torch.nn.MSELoss()
         losses = [
@@ -99,15 +101,15 @@ class TestTraining:
             for _ in range(5)
         ]
         assert losses[-1] < losses[0], (
-            f"{ModelClass.__name__}: loss did not decrease "
+            f"{model_class.__name__}: loss did not decrease "
             f"({losses[0]:.4f} -> {losses[-1]:.4f})"
         )
 
-    @pytest.mark.parametrize("ModelClass", [MLP, RNNModel, LSTMModel])
-    def test_evaluate_returns_float(self, loaders, ModelClass) -> None:
+    @pytest.mark.parametrize("model_class", [MLP, RNNModel, LSTMModel])
+    def test_evaluate_returns_float(self, loaders, model_class) -> None:
         """Evaluate must return a non-negative float."""
         _, va = loaders
-        val_loss = evaluate(ModelClass(), va, torch.nn.MSELoss(), torch.device("cpu"))
+        val_loss = evaluate(model_class(), va, torch.nn.MSELoss(), torch.device("cpu"))
         assert isinstance(val_loss, float) and val_loss >= 0.0
 
 

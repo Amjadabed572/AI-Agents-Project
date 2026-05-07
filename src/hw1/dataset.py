@@ -3,6 +3,7 @@ dataset.py - SineDataset and DataLoader factory for hw1.
 Task: combined noisy signal window + 1-hot label -> clean target frequency window.
 """
 
+from __future__ import annotations
 
 import numpy as np
 import torch
@@ -71,9 +72,11 @@ class SineDataset(Dataset):
                     amplitude=AMPLITUDE,
                     noise_std=noise_std,
                 )
+                clean = components[freq_idx]
                 for mw, cw in zip(
                     extract_windows(mixed, self.window_len),
-                    extract_windows(components[freq_idx], self.window_len),
+                    extract_windows(clean, self.window_len),
+                    strict=False,
                 ):
                     if collected >= samples_per_freq:
                         break
@@ -84,7 +87,7 @@ class SineDataset(Dataset):
                     collected += 1
 
     def __len__(self) -> int:
-        """Return total number of windows."""
+        """Return total number of windows in dataset."""
         return len(self.labels)
 
     def __getitem__(self, idx: int) -> dict:

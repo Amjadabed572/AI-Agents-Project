@@ -3,6 +3,8 @@ train.py - Training loop and evaluation utilities for hw1.
 Provides train_epoch, evaluate, train_model, compare_models, count_parameters.
 """
 
+from __future__ import annotations
+
 import time
 
 import torch
@@ -11,6 +13,7 @@ from torch.utils.data import DataLoader
 
 GRAD_CLIP_MAX_NORM = 1.0  # max gradient norm for clipping
 EARLY_STOPPING_PATIENCE = 15  # epochs without improvement before stopping
+CPU_DEVICE = torch.device("cpu")
 
 
 def train_epoch(
@@ -60,7 +63,7 @@ def train_model(
     val_loader: DataLoader,
     epochs: int = 50,
     lr: float = 1e-3,
-    device: torch.device = torch.device("cpu"),
+    device: torch.device = CPU_DEVICE,
     verbose: bool = True,
 ) -> dict[str, list[float]]:
     """
@@ -113,7 +116,7 @@ def compare_models(
     val_loader: DataLoader,
     epochs: int = 50,
     lr: float = 1e-3,
-    device: torch.device = torch.device("cpu"),
+    device: torch.device = CPU_DEVICE,
 ) -> dict[str, dict[str, list[float]]]:
     """Train all models and return their loss histories."""
     results = {}

@@ -3,6 +3,7 @@ signals.py - Signal generation utilities for hw1.
 Generates individual sine waves and combined multi-frequency signals.
 """
 
+from __future__ import annotations
 
 import numpy as np
 
@@ -35,9 +36,9 @@ def generate_sine(
     Returns np.ndarray of shape (num_samples,) dtype float32.
     """
     t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
-    A_jitter = amplitude * (1.0 + np.random.randn() * noise_std)
+    a_jitter = amplitude * (1.0 + np.random.randn() * noise_std)
     phase_noise = np.random.randn() * noise_std if noise_std > 0 else 0.0
-    signal = A_jitter * np.sin(2 * np.pi * freq * t + phase + phase_noise)
+    signal = a_jitter * np.sin(2 * np.pi * freq * t + phase + phase_noise)
     if noise_std > 0:
         signal += np.random.randn(len(t)) * amplitude * noise_std
     return signal.astype(np.float32)
@@ -56,7 +57,7 @@ def generate_combined(
     Returns
     -------
     combined   : np.ndarray (num_samples,) - mixed signal (model input)
-    components : List[np.ndarray]          - individual clean sine waves
+    components : list of np.ndarray        - individual clean sine waves
     """
     components = []
     for freq in frequencies:

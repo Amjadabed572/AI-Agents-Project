@@ -2,6 +2,7 @@
 plot_losses.py - Loss curve and model comparison visualizations for hw1.
 """
 
+from __future__ import annotations
 
 import matplotlib.pyplot as plt
 
@@ -10,15 +11,10 @@ EPOCHS = 50
 
 
 def plot_loss_curves(histories: dict[str, dict[str, list[float]]]) -> None:
-    """
-    Plot train/val MSE loss curves for all models side by side.
-
-    Parameters
-    ----------
-    histories : dict mapping model name to loss history dict
-    """
+    """Plot train/val MSE loss curves for all models side by side."""
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-    for ax, (name, hist) in zip(axes, histories.items()):
+
+    for ax, (name, hist) in zip(axes, histories.items(), strict=False):
         epochs = range(1, len(hist["train_loss"]) + 1)
         ax.plot(
             epochs,
@@ -41,14 +37,14 @@ def plot_loss_curves(histories: dict[str, dict[str, list[float]]]) -> None:
         ax.legend()
         ax.grid(True, alpha=0.3)
         final = hist["val_loss"][-1]
-        actual_epochs = len(hist["val_loss"])
         ax.annotate(
             f"Final: {final:.4f}",
-            xy=(actual_epochs, final),
-            xytext=(actual_epochs * 0.55, final * 1.3),
+            xy=(EPOCHS, final),
+            xytext=(EPOCHS * 0.55, final * 1.3),
             fontsize=9,
             color=COLORS[name],
         )
+
     fig.suptitle(
         "Training vs Validation Loss — Frequency Extraction Task",
         fontsize=14,
@@ -62,19 +58,14 @@ def plot_loss_curves(histories: dict[str, dict[str, list[float]]]) -> None:
 
 
 def plot_final_comparison(histories: dict[str, dict[str, list[float]]]) -> None:
-    """
-    Bar chart comparing final validation MSE across all models.
-
-    Parameters
-    ----------
-    histories : dict mapping model name to loss history dict
-    """
+    """Bar chart comparing final validation MSE across all models."""
     names = list(histories.keys())
     values = [h["val_loss"][-1] for h in histories.values()]
     colors = [COLORS[n] for n in names]
+
     fig, ax = plt.subplots(figsize=(7, 5))
     bars = ax.bar(names, values, color=colors, width=0.5, edgecolor="black")
-    for bar, val in zip(bars, values):
+    for bar, val in zip(bars, values, strict=False):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height() + 0.001,
