@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import torch  # noqa: E402
 
 from hw1.dataset import get_dataloaders  # noqa: E402
-from hw1.models import MLP, LSTMModel, RNNModel  # noqa: E402
+from hw1.models import LSTMModel, MLP, RNNModel  # noqa: E402
 from hw1.plot_comparison import plot_comparison  # noqa: E402
 from hw1.plot_losses import plot_final_comparison, plot_loss_curves  # noqa: E402
 from hw1.plot_signals import plot_signal_extraction  # noqa: E402
